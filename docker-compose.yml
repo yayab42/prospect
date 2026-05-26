@@ -1,0 +1,77 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    ports:
+      - "${API_PORT:-8000}:8000"
+    networks:
+      - tech_network
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-tech_companies}"
+      POSTGRES_USER: "${POSTGRES_USER:-tech_user}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-tech_password}"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tech_network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "pg_isready -U ${POSTGRES_USER:-tech_user} -d ${POSTGRES_DB:-tech_companies}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  apisix:
+    build:
+      context: ./apisix
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${APISIX_PORT:-9080}:9080"
+    networks:
+      - tech_network
+
+  kestra:
+    image: kestra/kestra:latest
+    command: server local
+    user: "root"
+    env_file:
+      - .env
+    ports:
+      - "${KESTRA_PORT:-8080}:8080"
+    volumes:
+      - kestra_storage:/app/storage
+      - kestra_data:/app/data
+    networks:
+      - tech_network
+
+volumes:
+  postgres_data:
+  kestra_storage:
+  kestra_data:
+
+networks:
+  tech_network:
+    driver: bridge

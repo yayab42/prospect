@@ -1,0 +1,21 @@
+routes:
+  - id: backend-health
+    uri: /api/health
+    plugins:
+      proxy-rewrite:
+        uri: /health
+    upstream:
+      type: roundrobin
+      nodes:
+        "backend:8000": 1
+  - id: backend-ready
+    uri: /api/ready
+    plugins:
+      proxy-rewrite:
+        uri: /ready
+    upstream:
+      type: roundrobin
+      nodes:
+        "backend:8000": 1
+#END
+
