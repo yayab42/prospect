@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Tech Companies</title>
+  </head>
+  <body>
+    <main>
+      <h1>Tech Companies</h1>
+
+      {% if error %}
+      <p role="alert">{{ error }}</p>
+      {% endif %}
+
+      <h2>Add a company</h2>
+      <form action="/web/companies" method="post">
+        <p>
+          <label for="name">Name *</label>
+          <input id="name" name="name" type="text" maxlength="255" required>
+        </p>
+        <p>
+          <label for="siren">SIREN</label>
+          <input id="siren" name="siren" type="text" inputmode="numeric" maxlength="9">
+        </p>
+        <p>
+          <label for="siret">SIRET</label>
+          <input id="siret" name="siret" type="text" inputmode="numeric" maxlength="14">
+        </p>
+        <p>
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" maxlength="120">
+        </p>
+        <p>
+          <label for="postal_code">Postal code</label>
+          <input id="postal_code" name="postal_code" type="text" maxlength="20">
+        </p>
+        <p>
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" maxlength="255">
+        </p>
+        <button type="submit">Add company</button>
+      </form>
+
+      <h2>Companies</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>SIREN</th>
+            <th>SIRET</th>
+            <th>City</th>
+            <th>Website</th>
+            <th>Data source</th>
+            <th>Created at</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for company in companies %}
+          <tr>
+            <td>{{ company.name }}</td>
+            <td>{{ company.siren or "" }}</td>
+            <td>{{ company.siret or "" }}</td>
+            <td>{{ company.city or "" }}</td>
+            <td>{{ company.website or "" }}</td>
+            <td>{{ company.data_source }}</td>
+            <td>{{ company.created_at }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">No companies recorded.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </main>
+  </body>
+</html>
