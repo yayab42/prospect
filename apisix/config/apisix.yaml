@@ -17,5 +17,10 @@ routes:
       type: roundrobin
       nodes:
         "backend:8000": 1
+  - id: backend-api-v1
+    uri: /api/v1/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "backend:8000": 1
 #END
-
