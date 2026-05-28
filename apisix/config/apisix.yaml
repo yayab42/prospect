@@ -23,4 +23,10 @@ routes:
       type: roundrobin
       nodes:
         "backend:8000": 1
+  - id: backend-web
+    uri: /web/*
+    upstream:
+      type: roundrobin
+      nodes:
+        "backend:8000": 1
 #END
