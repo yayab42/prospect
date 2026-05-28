@@ -12,6 +12,27 @@
       <p role="alert">{{ error }}</p>
       {% endif %}
 
+      {% if message %}
+      <p role="status">{{ message }}</p>
+      {% endif %}
+
+      {% if import_errors %}
+      <ul>
+        {% for import_error in import_errors %}
+        <li>{{ import_error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <h2>Import companies from CSV</h2>
+      <form action="/web/imports/companies-csv" method="post" enctype="multipart/form-data">
+        <p>
+          <label for="csv-file">CSV file</label>
+          <input id="csv-file" name="file" type="file" accept=".csv" required>
+        </p>
+        <button type="submit">Import CSV</button>
+      </form>
+
       <h2>Add a company</h2>
       <form action="/web/companies" method="post">
         <p>

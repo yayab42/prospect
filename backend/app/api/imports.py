@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.imports import CompanyImportResponse
 from app.services.company_import import InvalidCSVFile, import_companies_from_csv
-
-
-MAX_CSV_SIZE_BYTES = 1024 * 1024
+from app.services.csv_upload import (
+    CSVFileTooLarge,
+    UnsupportedCSVFile,
+    read_csv_upload_file,
+)
 
 router = APIRouter(prefix="/api/v1/imports", tags=["imports"])
 
@@ -16,22 +18,19 @@ async def import_companies_csv(
     file: UploadFile,
     db: Session = Depends(get_db),
 ) -> CompanyImportResponse:
-    if file.filename is None or not file.filename.lower().endswith(".csv"):
+    try:
+        file_content = await read_csv_upload_file(file)
+        return import_companies_from_csv(db, file_content)
+    except UnsupportedCSVFile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only CSV files are supported",
-        )
-
-    file_content = await file.read(MAX_CSV_SIZE_BYTES + 1)
-
-    if len(file_content) > MAX_CSV_SIZE_BYTES:
+        ) from None
+    except CSVFileTooLarge:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="CSV file is too large",
-        )
-
-    try:
-        return import_companies_from_csv(db, file_content)
+        ) from None
     except InvalidCSVFile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
