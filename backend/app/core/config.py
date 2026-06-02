@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, SecretStr, field_validator
 from sqlalchemy import URL
@@ -12,8 +13,38 @@ class Settings(BaseSettings):
     postgres_db: str = Field(default="tech_companies", alias="POSTGRES_DB")
     postgres_user: str = Field(default="tech_user", alias="POSTGRES_USER")
     postgres_password: SecretStr = Field(alias="POSTGRES_PASSWORD")
+    import_storage_dir: Path = Field(
+        default=Path("/app/storage/imports"),
+        alias="IMPORT_STORAGE_DIR",
+    )
+    kestra_import_webhook_url: str | None = Field(
+        default=None,
+        alias="KESTRA_IMPORT_WEBHOOK_URL",
+    )
+    internal_api_token: SecretStr | None = Field(
+        default=None,
+        alias="INTERNAL_API_TOKEN",
+    )
 
     model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
+
+    @field_validator("kestra_import_webhook_url", mode="before")
+    @classmethod
+    def empty_webhook_url_to_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        value = value.strip()
+        return value or None
+
+    @field_validator("internal_api_token", mode="before")
+    @classmethod
+    def empty_internal_api_token_to_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        value = value.strip()
+        return value or None
 
     @property
     def database_connection_url(self) -> str | URL:
