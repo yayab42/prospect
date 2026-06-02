@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from app.api.companies import router as companies_api_router
+from app.api.import_jobs import router as import_jobs_api_router
 from app.api.imports import router as imports_api_router
 from app.db.session import check_database_connection
 from app.web.companies import router as companies_web_router
@@ -14,6 +15,7 @@ app = FastAPI(
 )
 app.include_router(companies_api_router)
 app.include_router(imports_api_router)
+app.include_router(import_jobs_api_router)
 app.include_router(companies_web_router)
 
 
