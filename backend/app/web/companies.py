@@ -5,17 +5,24 @@ from fastapi import APIRouter, Depends, Form, Query, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.repositories.company_repository import create_company, list_companies
 from app.schemas.company import CompanyCreate
-from app.services.company_import import InvalidCSVFile, import_companies_from_csv
 from app.services.csv_upload import (
     CSVFileTooLarge,
     UnsupportedCSVFile,
     read_csv_upload_file,
+)
+from app.services.import_job_orchestrator import (
+    ImportJobOrchestrationError,
+    create_company_import_job,
+)
+from app.services.import_job_storage import (
+    ImportFileStorageError,
+    InvalidImportFileExtension,
 )
 
 
@@ -116,27 +123,22 @@ async def import_companies_csv_web(
 ) -> RedirectResponse:
     try:
         file_content = await read_csv_upload_file(file)
-        result = import_companies_from_csv(db, file_content)
-
-        params: dict[str, str | list[str]] = {
-            "message": (
-                "Import completed: "
-                f"{result.imported_rows} imported, {result.rejected_rows} rejected."
-            )
-        }
-
-        if result.errors:
-            params["import_errors"] = [
-                f"Line {row_error.line}: {row_error.reason}"
-                for row_error in result.errors
-            ]
-
-        return redirect_to_companies(**params)
-    except UnsupportedCSVFile:
+        job = create_company_import_job(
+            db,
+            file_content=file_content,
+            original_filename=file.filename or "companies.csv",
+        )
+        return redirect_to_companies(message=f"Import job created: {job.id}")
+    except (UnsupportedCSVFile, InvalidImportFileExtension):
         return redirect_to_companies(error="Only CSV files are supported.")
     except CSVFileTooLarge:
         return redirect_to_companies(error="CSV file is too large.")
-    except InvalidCSVFile:
-        return redirect_to_companies(error="Invalid CSV file.")
+    except ImportFileStorageError:
+        return redirect_to_companies(error="Unable to store import file.")
+    except ImportJobOrchestrationError:
+        return redirect_to_companies(error="Import orchestration is unavailable.")
+    except SQLAlchemyError:
+        db.rollback()
+        return redirect_to_companies(error="Unable to create import job.")
     finally:
         await file.close()

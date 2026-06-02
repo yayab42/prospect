@@ -1,0 +1,30 @@
+id: import_companies_csv
+namespace: prospect.imports
+
+triggers:
+  - id: import_job_webhook
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: import-companies-csv
+
+tasks:
+  - id: process_import_job_via_apisix
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - |
+        JOB_ID="{{ trigger.body | jq('.job_id') | first }}"
+
+        if [ -z "$JOB_ID" ] || [ "$JOB_ID" = "null" ]; then
+          echo "Missing job_id in webhook payload" >&2
+          exit 1
+        fi
+
+        if [ -z "${INTERNAL_API_TOKEN:-}" ]; then
+          echo "Missing INTERNAL_API_TOKEN" >&2
+          exit 1
+        fi
+
+        curl --fail-with-body -X POST \
+          "http://apisix:9080/api/v1/import-jobs/${JOB_ID}/process" \
+          -H "X-Internal-Token: ${INTERNAL_API_TOKEN}"
